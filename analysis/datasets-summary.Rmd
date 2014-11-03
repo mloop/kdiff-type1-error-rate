@@ -1,0 +1,23 @@
+---
+output:
+  html_document:
+    theme: cerulean
+---
+__Purpose: Summarize the sample sizes and proportion of cases in each dataset__
+
+# Preliminaries
+```{r packages}
+library(dplyr)
+```
+
+```{r data}
+n <- matrix(0, nrow = 4, ncol = 2000)
+p <- matrix(0, nrow = 4, ncol = 2000)
+for(i in 1:4){
+    for(j in 1:2000){
+        data <- read.table(file = paste('../data/datasets/c-', i+4, '/', j, '.txt', sep = ''), sep = '\t', header = TRUE)
+        n[i, j] <- nrow(data)
+        p[i, j] <- nrow(filter(data, marks == 'case'))/n[i, j]
+        }
+    }
+```

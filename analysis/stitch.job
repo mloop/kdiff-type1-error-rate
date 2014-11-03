@@ -1,0 +1,47 @@
+#!/bin/bash
+#$ -cwd
+#$ -j n
+#$ -N stitch
+#$ -M loop2@uab.edu
+#$ -m e
+#$ -e stitch.err
+#$ -o stitch.out
+#$ -l h_rt=00:30:00
+#$ -l vf=5G
+
+. /etc/profile.d/modules.sh
+
+module load R/R-3.0.1
+#$ -v PATH,R_HOME,R_LIBS,LD_LIBRARY_PATH,CWD
+
+# Count number of files
+date
+file_count=`ls results-*-*.txt | wc -l`
+echo "Total number of array job output files= $file_count" 
+
+output_file_format="results-*-*.txt"
+
+# Checking that number of rows in each output file from simulation.R is correct.
+# The only possible values should be 2, 11, 51, and 101
+for f in $output_file_format; do
+    lc=`wc -l < $f`
+	{
+	if (( $lc != 2 && $lc != 11 && $lc != 51 && $lc != 101 )); then
+		echo "Error in $f: line count = $lc"
+		exit 0
+	fi
+	}
+done
+
+# $file_count variable value must match 8*number of iterations listed as number of array tasks in simulation.job file. Then, send each file to the results file and delete the file.
+
+# 8 iterations failed to complete, so I am removing the restriction on the file count to be 16,000
+echo "merging the outputs ...."
+touch results.txt
+grep -v [1] < results-1-1.txt | cat > results.txt
+for f in $output_file_format; do
+	grep -v ["conditions"] < $f | cat >> results.txt
+	rm $f
+done
+echo "Done"
+date

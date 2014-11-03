@@ -1,0 +1,58 @@
+---
+output:
+  html_document:
+    self_contained: no
+    theme: cerulean
+---
+__Purpose: estimate empirical type 1 error rates and graph results__
+
+# Preliminaries
+
+## Packages
+```{r packages}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Load data
+```{r data}
+results <- tbl_df(read.table(file = "results.txt", sep = "\t", header = TRUE))
+results_s <- arrange(results, condition, iteration, range)
+results_s
+conditions <- tbl_df(read.table(file = "../data/conditions.txt", sep = "\t", header = TRUE))
+conditions
+```
+
+# Estimate type 1 error rates
+For each number of tests performed, we will estimate the family wise error rate (FWE).
+```{r alpha-hat}
+results_by_c_i <- group_by(results_s, condition, iteration)
+z_df <- (summarise(results_by_c_i,
+                        n = n(),
+                        z = sum(reject),
+                        reject_h0 = ifelse(z >= 1, 1, 0)
+                       ))
+z_df_c <- group_by(z_df, condition)
+alpha_hat <- summarize(z_df_c,
+                       n = n(),
+                       alpha_hat = sum(reject_h0) / n,
+                       ci_low = alpha_hat - 1.96*sqrt(alpha_hat*(1-alpha_hat)/n),
+                       ci_high = alpha_hat + 1.96*sqrt(alpha_hat*(1-alpha_hat)/n)
+                       )
+
+alpha_hat_conditions <- join(conditions, alpha_hat)
+alpha_hat_conditions
+write.table(alpha_hat_conditions, file = "alpha-hat.txt", sep = "\t", row.names = FALSE)
+```
+
+# Plot estimates
+```{r plot-estimates, dpi=300}
+p <- ggplot(alpha_hat_conditions, aes(x = tests, y = alpha_hat)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = ci_low, ymax = ci_high)) +
+    ggtitle("Family-wise error (FWE) rates, with 95% confidence intervals") +
+    xlab("Number of ranges tested") +
+    ylab((expression(hat(alpha))))
+p + facet_grid(. ~ process)
+```
