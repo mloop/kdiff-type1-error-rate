@@ -12,6 +12,7 @@ alpha_hat_cox <- filter(alpha_hat, process == "cox")
 # Generate plot
 p <- ggplot(alpha_hat_cox, aes(x = tests, y = alpha_hat)) +
     geom_pointrange(aes(ymin = ci_low, ymax = ci_high), size = 0.2) +
+    geom_path() +
     ggtitle("Family wise error rates (FWE), with 95% confidence intervals") +
     xlab("Number of ranges tested") +
     ylab("FWE") + 
